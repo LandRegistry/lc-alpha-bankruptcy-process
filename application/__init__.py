@@ -1,8 +1,7 @@
-from flask import Flask
-import os
-from log.logger import setup_logging
+from application.server import run
+import threading
 
-app = Flask(__name__)
-app.config.from_object(os.environ.get('SETTINGS'))
 
-setup_logging(app.config['DEBUG'])
+process_thread = threading.Thread(name='banks_processor', target=run)
+process_thread.daemon = True
+process_thread.start()
