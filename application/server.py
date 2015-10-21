@@ -6,7 +6,7 @@ from amqp import AccessRefused
 import logging
 
 
-def setup_incoming(hostname):
+def setup_incoming(hostname):  # pragma: no cover
     connection = kombu.Connection(hostname=hostname)
     connection.connect()
 
