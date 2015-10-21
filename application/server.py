@@ -17,7 +17,7 @@ def setup_incoming(hostname):
     exchange.maybe_bind(channel)
     maybe_declare(exchange, channel)
 
-    queue = kombu.Queue(name='simple', exchange=exchange, routing_key='#')
+    queue = kombu.Queue(name='bank-process', exchange=exchange, routing_key='#')
     queue.maybe_bind(channel)
     try:
         queue.declare()
