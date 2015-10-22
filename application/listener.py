@@ -85,7 +85,6 @@ def listen(incoming_connection, error_producer, run_forever=True):
             for error in exception.value:
                 error_producer.put(error)
             logging.info("Error published")
-            raise
         except KeyboardInterrupt:
             logging.info("Interrupted")
             break
