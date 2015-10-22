@@ -14,10 +14,26 @@ def check_legacy_health():
     return requests.get(app.config['LEGACY_DB_URI'] + '/health')
 
 
+def check_names_search_health():
+    return requests.get(app.config['NAMES_SEARCH_URI'] + '/health')
+
+
+def check_register_health():
+    return requests.get(app.config['REGISTER_URI'] + '/health')
+
+
 application_dependencies = [
     {
         "name": "legacy-db",
         "check": check_legacy_health
+    },
+    {
+        "name": "names-search",
+        "check": check_names_search_health
+    },
+    {
+        "name": "bankruptcy-registration",
+        "check": check_register_health
     }
 ]
 
@@ -33,6 +49,7 @@ def healthcheck():
         response = dependency["check"]()
         result['dependencies'][dependency['name']] = str(response.status_code) + ' ' + response.reason
         data = json.loads(response.content.decode('utf-8'))
+        print(data)
         for key in data['dependencies']:
             result['dependencies'][key] = data['dependencies'][key]
 
