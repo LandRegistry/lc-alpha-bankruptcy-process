@@ -20,7 +20,7 @@ def message_received(body, message):
     request_uri = app.config['REGISTER_URI'] + '/registration/'
     for number in body:
         try:
-            logging.debug("Processing %d", number)
+            logging.debug("Processing %s", number)
             uri = request_uri + str(number)
             response = requests.get(uri)
 
