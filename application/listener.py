@@ -20,7 +20,7 @@ def message_received(body, message):
     request_uri = app.config['REGISTER_URI'] + '/registration/'
     for number in body:
         try:
-            logging.debug("Processing %s", number)
+            logging.info("Processing %s", number)
             uri = request_uri + str(number)
             response = requests.get(uri)
 
@@ -42,7 +42,7 @@ def message_received(body, message):
                 headers = {'Content-Type': 'application/json'}
                 post_response = requests.post(uri, data=json.dumps(combined_data), headers=headers)
                 if post_response.status_code == 200:
-                    logging.debug("Received response 200 from legacy db ")
+                    logging.info("Received response 200 from legacy db ")
                 else:
                     logging.error("Received response %d from legacy db trying to add debtor %s",
                                   response.status_code, number)
@@ -54,7 +54,7 @@ def message_received(body, message):
                     }
                     errors.append(error)
             else:
-                logging.error("Received response %d from /registration for registration %s",
+                logging.error("Received response %d from bankruptcy-registration for registration %s",
                               response.status_code, number)
                 error = {
                     "uri": '/registration',
