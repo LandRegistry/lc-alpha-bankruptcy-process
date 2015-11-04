@@ -4,6 +4,7 @@ from log.logger import setup_logging
 import requests
 import json
 import threading
+import logging
 
 app = Flask(__name__)
 app.config.from_object(os.environ.get('SETTINGS'))
@@ -45,8 +46,12 @@ def healthcheck():
         'dependencies': {}
     }
 
-    thread = [t for t in threading.enumerate() if t.name == 'banks_processor'][0]
-    alive = "Alive" if thread.is_alive() else "Failed"
+    logging.info('Enumerate Threads')
+    for t in threading.enumerate():
+        logging.info(t.name)
+
+    threads = [t for t in threading.enumerate() if t.name == 'banks_processor']
+    alive = "Alive" if (len(threads) > 0 and threads[0].is_alive()) else "Failed"
     result['dependencies']['listener-thread'] = alive
 
     status = 200
