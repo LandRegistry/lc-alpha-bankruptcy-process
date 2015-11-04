@@ -25,7 +25,7 @@ def message_received(body, message):
             response = requests.get(uri)
 
             if response.status_code == 200:
-                logging.debug("Received response 200 from /registration")
+                logging.info("Received response 200 from /registration")
                 registration_response = response.json()
 
                 forenames = " ".join(registration_response['debtor_name']['forenames'])
@@ -34,12 +34,14 @@ def message_received(body, message):
                 url = app.config['NAMES_SEARCH_URI'] + '/search?forename=' + forenames + '&surname=' + surname
                 response = requests.get(url)
                 name_search_result = response.json()
+                logging.info('Retrieved %d name hits', len(name_search_result))
 
                 combined_data = {'registration': registration_response,
                                  'iopn': name_search_result}
 
                 uri = app.config['LEGACY_DB_URI'] + '/debtor'
                 headers = {'Content-Type': 'application/json'}
+                logging.info('Posting combined dataset to LegacyDB')
                 post_response = requests.post(uri, data=json.dumps(combined_data), headers=headers)
                 if post_response.status_code == 200:
                     logging.info("Received response 200 from legacy db ")
@@ -49,7 +51,7 @@ def message_received(body, message):
                     error = {
                         "uri": '/land_charge',
                         "status_code": post_response.status_code,
-                        "message": post_response.content,
+                        "message": post_response.content.decode('utf-8'),
                         "registration_no": number
                     }
                     errors.append(error)
@@ -59,6 +61,7 @@ def message_received(body, message):
                 error = {
                     "uri": '/registration',
                     "status_code": response.status_code,
+                    "message": post_response.content.decode('utf-8'),
                     "registration_no": number
                 }
                 errors.append(error)
