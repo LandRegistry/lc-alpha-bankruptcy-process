@@ -85,6 +85,7 @@ def message_received(body, message):
                 logging.info("Received response 200 from /registration")
                 registration_response = response.json()
 
+                print(registration_response)
                 if 'complex' in registration_response:
                     # Complex Name Case...
                     name_search_result = get_complex_name_matches(registration_response['complex']['name'])

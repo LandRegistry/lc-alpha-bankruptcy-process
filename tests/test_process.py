@@ -4,7 +4,7 @@ import requests
 import os
 from application.routes import app
 import json
-from application.listener import message_received, BankruptcyProcessError, listen
+from application.listener import message_received, BankruptcyProcessError, listen, get_complex_name_matches
 
 
 class FakeConnection(object):
@@ -45,14 +45,40 @@ class FakeMessage(object):
         pass
 
 
+complex_names = [
+    {
+        "name": "BORERBERG VISCOUNT",
+        "number": "1066224"
+    },
+    {
+        "name": "ORNMOUTH VISCOUNT",
+        "number": "1066224"
+    }
+]
+
+iopn_cplex = [
+    {
+        "prop_type": "Joint",
+        "relevance": 1,
+        "surname": "",
+        "full_name": "Helenbury Baron",
+        "sub_register": "C",
+        "office": "Fictional Office",
+        "forenames": "",
+        "name_type": "Private",
+        "title_number": "ZZ203"
+    }
+]
+
 directory = os.path.dirname(__file__)
 no_alias = json.loads(open(os.path.join(directory, 'data/50001.json'), 'r').read())
-
+cplex_name = json.loads(open(os.path.join(directory, 'data/50002.json'), 'r').read())
 no_alias_resp = FakeResponse(no_alias, status_code=200)
 
+cplex_resp = FakeResponse(complex_names, status_code=200)
+iopn_resp = FakeResponse(iopn_cplex, status_code=200)
 
 class TestProcessor:
-
     def setup_method(self, method):
         self.app = app.test_client()
 
@@ -83,3 +109,13 @@ class TestProcessor:
     def test_listener_error_handled(self, mock_publish):
         fake_producer = FakePublisher()
         listen(FakeConnectionWithBankruptcyProcessError(), fake_producer, False)
+
+    @mock.patch('kombu.Producer.publish')
+    @mock.patch('requests.get', return_value=iopn_resp)
+    @mock.patch('requests.post', return_value=cplex_resp)
+    def test_complex_name(self, mp, mg, mp2):
+        results = get_complex_name_matches('HRH King Stark')
+        assert len(results) == 2
+        assert results[0]['full_name'] == 'Helenbury Baron'
+
+
