@@ -27,7 +27,7 @@ def get_simple_name_matches(debtor_name):
     forenames = " ".join(debtor_name['forenames'])
     surname = debtor_name['surname']
 
-    url = app.config['NAMES_SEARCH_URI'] + '/search?forename=' + forenames + '&surname=' + surname
+    url = app.config['NAMES_SEARCH_URI'] + '/proprietors?forenames=' + forenames + '&surname=' + surname
     response = requests.get(url)
     name_search_result = response.json()
     logging.info('Retrieved %d name hits', len(name_search_result))
@@ -49,7 +49,7 @@ def get_complex_name_matches(name):
     # Now IOPN search against each name
     name_search_result = []
     for name in names:
-        url = app.config['NAMES_SEARCH_URI'] + '/search'
+        url = app.config['NAMES_SEARCH_URI'] + '/proprietors'
         params = {'name': name, 'type': 'exact'}
         names_response = requests.get(url, params=params)
         name_search_result += names_response.json()
@@ -62,7 +62,7 @@ def post_bankruptcy_search(registration, name_search_result):
         'iopn': name_search_result
     }
 
-    uri = app.config['LEGACY_DB_URI'] + '/debtor'
+    uri = app.config['LEGACY_DB_URI'] + '/debtors'
     headers = {'Content-Type': 'application/json'}
     logging.info('Posting combined dataset to LegacyDB')
     return requests.post(uri, data=json.dumps(data), headers=headers)
@@ -74,7 +74,7 @@ def message_received(body, message):
 
     # TODO: only execute against relevant registrations/amendments etc.
 
-    request_uri = app.config['REGISTER_URI'] + '/registration/'
+    request_uri = app.config['REGISTER_URI'] + '/registrations/'
     for number in body:
         try:
             logging.info("Processing %s", number)
@@ -82,7 +82,7 @@ def message_received(body, message):
             response = requests.get(uri)
 
             if response.status_code == 200:
-                logging.info("Received response 200 from /registration")
+                logging.info("Received response 200 from /registrations")
                 registration_response = response.json()
 
                 print(registration_response)
@@ -98,11 +98,11 @@ def message_received(body, message):
                 else:
                     logging.error("Received response %d from legacy db trying to add debtor %s",
                                   post_response.status_code, number)
-                    save_error(errors, post_response, '/land_charge', number)
+                    save_error(errors, post_response, '/debtor', number)
             else:
                 logging.error("Received response %d from bankruptcy-registration for registration %s",
                               response.status_code, number)
-                save_error(errors, response, '/registration', number)
+                save_error(errors, response, '/registrations', number)
 
         # pylint: disable=broad-except
         except Exception as exception:
