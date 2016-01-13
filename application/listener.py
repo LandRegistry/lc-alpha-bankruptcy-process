@@ -2,6 +2,7 @@ from application.routes import app
 import requests
 import json
 import logging
+import urllib.parse
 
 
 class BankruptcyProcessError(Exception):
@@ -26,33 +27,20 @@ def save_error(errors, response, route, id):
 def get_simple_name_matches(debtor_name):
     forenames = " ".join(debtor_name['forenames'])
     surname = debtor_name['surname']
+    name = forenames + ' ' + surname
 
-    url = app.config['NAMES_SEARCH_URI'] + '/proprietors?forenames=' + forenames + '&surname=' + surname
+    url = app.config['LEGACY_DB_URI'] + '/proprietors?name=' + urllib.parse.quote(name.upper())
     response = requests.get(url)
     name_search_result = response.json()
     logging.info('Retrieved %d name hits', len(name_search_result))
     return name_search_result
 
 
-def get_complex_name_matches(name):
-    uri = app.config['LEGACY_DB_URI'] + '/complex_names/search'
-    cn_response = requests.post(uri, data=json.dumps({"name": name}), headers={'Content-Type': 'application/json'})
-
-    names = []
-    if cn_response.status_code == 404:
-        names.append(name)  # TODO: what happens if BR thinks its complex, but CN doesn't?
-    else:
-        cnames = cn_response.json()
-        for item in cnames:
-            names.append(item['name'])
-
-    # Now IOPN search against each name
-    name_search_result = []
-    for name in names:
-        url = app.config['NAMES_SEARCH_URI'] + '/proprietors'
-        params = {'name': name, 'type': 'exact'}
-        names_response = requests.get(url, params=params)
-        name_search_result += names_response.json()
+def get_complex_name_matches(number):
+    url = app.config['LEGACY_DB_URI'] + '/proprietors?name=' + str(number) + "&complex=Y"
+    response = requests.get(url)
+    name_search_result = response.json()
+    logging.info('Retrieved %d name hits', len(name_search_result))
     return name_search_result
 
 
@@ -88,7 +76,7 @@ def message_received(body, message):
                 print(registration_response)
                 if 'complex' in registration_response:
                     # Complex Name Case...
-                    name_search_result = get_complex_name_matches(registration_response['complex']['name'])
+                    name_search_result = get_complex_name_matches(registration_response['complex']['number'])
                 else:
                     name_search_result = get_simple_name_matches(registration_response['debtor_name'])
 
