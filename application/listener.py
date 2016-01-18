@@ -63,10 +63,13 @@ def message_received(body, message):
     # TODO: only execute against relevant registrations/amendments etc.
 
     request_uri = app.config['REGISTER_URI'] + '/registrations/'
-    for number in body:
+    for application in body['data']:
+        number = application['number']
+        date = application['date']
+
         try:
             logging.info("Processing %s", number)
-            uri = request_uri + str(number)
+            uri = "{}{}/{}".format(request_uri, date, number)
             response = requests.get(uri)
 
             if response.status_code == 200:
