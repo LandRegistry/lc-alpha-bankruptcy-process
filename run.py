@@ -1,4 +1,23 @@
-from application.routes import app
+from log.logger import setup_logging
+from application.process import process
+import sys
+import importlib
+import datetime
 
 
-app.run(host="0.0.0.0", debug=True, port=5015)
+if len(sys.argv) == 2:
+    d = sys.argv[1]
+else:
+    d = datetime.now().strftime('%Y-%m-%d')
+
+cfg = 'Config'
+c = getattr(importlib.import_module('config'), cfg)
+config = {}
+
+for key in dir(c):
+    if key.isupper():
+        config[key] = getattr(c, key)
+
+setup_logging(config)
+process(config, d)
+
