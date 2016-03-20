@@ -106,7 +106,8 @@ def convert_registration(registration):
     elif debtor['names'][0]['type'] == 'Complex Name':
         result['complex'] = {
             'number': debtor['names'][0]['complex']['number'],
-            'name': debtor['names'][0]['complex']['name']        }
+            'name': debtor['names'][0]['complex']['name']
+        }
 
     for address in [a for a in debtor['addresses'] if a['type'] == 'Residence']:
         result['residence'].append({
@@ -169,6 +170,29 @@ def get_debtor_name_matches(name):
         raise BankruptcyProcessError('Unexpected name type: {}'.format(name['type']))
 
 
+def lead_name_changed(current, previous):
+    curr_debtor = None
+    prev_debtor = None
+
+    for party in current['parties']:
+        if party['type'] == 'Debtor':
+            curr_debtor = party
+
+    for party in previous['parties']:
+        if party['type'] == 'Debtor':
+            prev_debtor = party
+
+    if curr_debtor is None or prev_debtor is None:
+        raise BankruptcyProcessError("On amendment, cannot find both debtors")
+
+    curr_name = ' '.join(curr_debtor['names'][0]['private']['forenames']) + ' ' + curr_debtor['names'][0]['private']['surname']
+    prev_name = ' '.join(prev_debtor['names'][0]['private']['forenames']) + ' ' + prev_debtor['names'][0]['private']['surname']
+
+    if curr_name.upper() != prev_name.upper():
+        return True
+    return False
+
+
 def process_entry(producer, entry):
     for item in entry['data']:
         date = item['date']
@@ -178,10 +202,18 @@ def process_entry(producer, entry):
         if coc in ['PAB', 'WOB']:
             logging.info("Processing %s", number)
             reg = get_registration(date, number)
+
+            if 'amends_registration' in reg and reg['amends_registration']['tyoe'] == 'Amendment':
+                prev_number = reg['amends_registration']['number']
+                prev_date = reg['amends_registration']['date']
+                prev_reg = get_registration(prev_date, prev_number)
+                if not lead_name_changed(reg, prev_reg):
+                    continue
+
             debtor = get_debtor_party(reg)
 
             if debtor is None:
-                raise BankruptcyProcessError("Registration %d has no debtor", number)
+                raise BankruptcyProcessError("Registration {} has no debtor".format(number))
 
             names = []
             for name in debtor['names']:
@@ -222,6 +254,8 @@ def process(config, date):
         try:
             if entry['application'] in ['new']:
                 process_entry(producer, entry)
+            if entry['application'] in ['Amendment']:
+                process_entry(producer, entry) # TODO: only if its a name change
             else:
                 logging.info('Skipping application of type "%s"', entry['application'])
 
