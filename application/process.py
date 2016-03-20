@@ -4,9 +4,24 @@ import logging
 import urllib.parse
 import kombu
 import traceback
+import getpass
 
 
 CONFIG = {}
+
+
+def get_username():
+    return "{}({})".format(
+        getpass.getuser(),
+        CONFIG['APPLICATION_NAME']
+    )
+
+
+def get_headers(headers=None):
+    if headers is None:
+        headers = {}
+
+    headers['X-LC-Username'] = get_username()
 
 
 class BankruptcyProcessError(Exception):
@@ -34,7 +49,7 @@ def get_simple_name_matches(debtor_name):
     name = forenames + ' ' + surname
 
     url = CONFIG['LEGACY_DB_URI'] + '/proprietors?name=' + urllib.parse.quote(name.upper())
-    response = requests.get(url)
+    response = requests.get(url, headers=get_headers())
     name_search_result = response.json()
 
     if response.status_code != 200:
@@ -46,7 +61,7 @@ def get_simple_name_matches(debtor_name):
 
 def get_complex_name_matches(number):
     url = CONFIG['LEGACY_DB_URI'] + '/proprietors?name=' + str(number) + "&complex=Y"
-    response = requests.get(url)
+    response = requests.get(url, headers=get_headers())
 
     if response.status_code != 200:
         raise BankruptcyProcessError("Unexpected response {} from {}".format(response.status_code, url))
@@ -112,13 +127,13 @@ def post_bankruptcy_search(registration, name_search_result):
     uri = CONFIG['LEGACY_DB_URI'] + '/debtors'
     headers = {'Content-Type': 'application/json'}
     logging.info('Posting combined dataset to LegacyDB')
-    return requests.post(uri, data=json.dumps(data), headers=headers)
+    return requests.post(uri, data=json.dumps(data), headers=get_headers(headers))
 
 
 def get_entries_for_process(date):
     logging.info('Get entries for date %s', date)
     url = CONFIG['REGISTER_URI'] + '/registrations/' + date
-    response = requests.get(url)
+    response = requests.get(url, headers=get_headers())
     if response.status_code == 200:
         return response.json()
     elif response.status_code != 404:
@@ -128,7 +143,7 @@ def get_entries_for_process(date):
 
 def get_registration(date, number):
     uri = "{}{}/{}".format(CONFIG['REGISTER_URI'] + '/registrations/', date, number)
-    response = requests.get(uri)
+    response = requests.get(uri, headers=get_headers())
     if response.status_code == 200:
         logging.info("Received response 200 from /registrations")
         return response.json()
