@@ -5,7 +5,7 @@ import urllib.parse
 import kombu
 import traceback
 import getpass
-
+import re
 
 CONFIG = {}
 
@@ -75,18 +75,27 @@ def convert_registration(registration):
     debtor = get_debtor_party(registration)
     logging.debug(debtor['names'])
 
+    match = re.match("(.*) (?:no)? (\d+ of \d{4})", debtor['case_reference'], re.IGNORECASE)
+    if match:
+        body = match.group(1)
+        reference = match.group(2)
+    else:
+        match = re.match("(.*) (?:ref|no) (.*)", debtor['case_reference'], re.IGNORECASE)
+        if match:
+            body = match.group(1)
+            reference = match.group(2)
+        else:
+            reference = debtor['case_reference']
+            body = ""
+
     result = {
         'debtor_names': [],
-        # 'debtor_names': [{
-        #     'forenames': debtor['names'][0]['private']['forenames'],
-        #     'surname': debtor['names'][0]['surname']
-        # }],
-        'legal_body_ref': debtor['case_reference'],
+        'legal_body_ref': reference,  # should be num of year
         'trading_name': "",
         'status': registration['status'],
         "class_of_charge": registration['class_of_charge'],
         'key_number': registration['applicant']['key_number'],
-        'legal_body': debtor['legal_body'],
+        'legal_body': body,
         'registration': {
             'number': registration['registration']['number'],
             'date': registration['registration']['date']
@@ -273,6 +282,8 @@ def process(config, date):
     logging.info("Synchroniser finishes")
     if there_were_errors:
         logging.error("There were errors")
+
+    return not there_were_errors
 
 
 def log_stack():

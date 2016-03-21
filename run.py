@@ -19,5 +19,7 @@ for key in dir(c):
         config[key] = getattr(c, key)
 
 setup_logging(config)
-process(config, d)
+if process(config, d):
+    exit(0)
+exit(1)
 
