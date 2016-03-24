@@ -100,10 +100,13 @@ def convert_registration(registration):
             'number': registration['registration']['number'],
             'date': registration['registration']['date']
         },
-        'occupation': debtor['occupation'],
+        'occupation': '',
         'residence': [],
         'application_ref': registration['applicant']['reference']
     }
+
+    if 'occupation' in debtor:
+        result['occupation'] = debtor['occupation']
 
     if debtor['names'][0]['type'] == 'Private Individual':
         for n in debtor['names']:
@@ -212,7 +215,7 @@ def process_entry(producer, entry):
             logging.info("Processing %s", number)
             reg = get_registration(date, number)
 
-            if 'amends_registration' in reg and reg['amends_registration']['tyoe'] == 'Amendment':
+            if 'amends_registration' in reg and reg['amends_registration']['type'] == 'Amendment':
                 prev_number = reg['amends_registration']['number']
                 prev_date = reg['amends_registration']['date']
                 prev_reg = get_registration(prev_date, prev_number)
@@ -224,13 +227,14 @@ def process_entry(producer, entry):
             if debtor is None:
                 raise BankruptcyProcessError("Registration {} has no debtor".format(number))
 
-            names = []
-            for name in debtor['names']:
-                names += get_debtor_name_matches(name)
+            # names = []
+            # for name in debtor['names']:
+            #     names += get_debtor_name_matches(name)
+            names = get_debtor_name_matches(debtor['names'][0])
 
             post_resp = post_bankruptcy_search(reg, names)
             if post_resp.status_code == 200:
-                logging.info("Received response 200 from legacy adpater")
+                logging.info("Received response 200 from legacy adapter")
             else:
                 error = "Received response {} from legacy db trying to add debtor {}".format(post_resp.status_code, number)
                 logging.error(error)
@@ -258,13 +262,14 @@ def process(config, date):
 
     there_were_errors = False
     for entry in entries:
+        logging.info('================================================================')
         logging.info("Process {}".format(entry['application']))
 
         try:
             if entry['application'] in ['new']:
                 process_entry(producer, entry)
-            if entry['application'] in ['Amendment']:
-                process_entry(producer, entry) # TODO: only if its a name change
+            elif entry['application'] in ['Amendment']:
+                process_entry(producer, entry)
             else:
                 logging.info('Skipping application of type "%s"', entry['application'])
 
@@ -298,73 +303,3 @@ def log_stack():
 def raise_error(producer, error):
     producer.put(error)
     logging.warning('Error successfully raised.')
-
-
-# def message_received(body, message):
-#     logging.info("Received new registrations: %s", str(body))
-#     errors = []
-#
-#     # TODO: only execute against relevant registrations/amendments etc.
-#
-#     request_uri = CONFIG['REGISTER_URI'] + '/registrations/'
-#     for application in body['data']:
-#         number = application['number']
-#         date = application['date']
-#
-#         try:
-#             logging.info("Processing %s", number)
-#             uri = "{}{}/{}".format(request_uri, date, number)
-#             response = requests.get(uri)
-#
-#             if response.status_code == 200:
-#                 logging.info("Received response 200 from /registrations")
-#                 registration_response = response.json()
-#
-#                 print(registration_response)
-#                 if 'complex' in registration_response:
-#                     # Complex Name Case...
-#                     name_search_result = get_complex_name_matches(registration_response['complex']['number'])
-#                 else:
-#                     name_search_result = get_simple_name_matches(registration_response['debtor_name'])
-#
-#                 post_response = post_bankruptcy_search(registration_response, name_search_result)
-#                 if post_response.status_code == 200:
-#                     logging.info("Received response 200 from legacy db ")
-#                 else:
-#                     logging.error("Received response %d from legacy db trying to add debtor %s",
-#                                   post_response.status_code, number)
-#                     save_error(errors, post_response, '/debtor', number)
-#             else:
-#                 logging.error("Received response %d from bankruptcy-registration for registration %s",
-#                               response.status_code, number)
-#                 save_error(errors, response, '/registrations', number)
-#
-#         # pylint: disable=broad-except
-#         except Exception as exception:
-#             errors.append({
-#                 "registration_no": number,
-#                 "exception_class": type(exception).__name__,
-#                 "error_message": str(exception)
-#             })
-#
-#     message.ack()
-#     if len(errors) > 0:
-#         raise BankruptcyProcessError(errors)
-#
-#
-# def listen(incoming_connection, error_producer, run_forever=True):
-#     logging.info('Listening for new registrations')
-#
-#     while True:
-#         try:
-#             incoming_connection.drain_events()
-#         except BankruptcyProcessError as exception:
-#             for error in exception.value:
-#                 error_producer.put(error)
-#             logging.info("Error published")
-#         except KeyboardInterrupt:
-#             logging.info("Interrupted")
-#             break
-#
-#         if not run_forever:
-#             break
