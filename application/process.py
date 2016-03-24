@@ -262,12 +262,13 @@ def process(config, date):
 
     there_were_errors = False
     for entry in entries:
+        logging.info('================================================================')
         logging.info("Process {}".format(entry['application']))
 
         try:
             if entry['application'] in ['new']:
                 process_entry(producer, entry)
-            if entry['application'] in ['Amendment']:
+            elif entry['application'] in ['Amendment']:
                 process_entry(producer, entry)
             else:
                 logging.info('Skipping application of type "%s"', entry['application'])
