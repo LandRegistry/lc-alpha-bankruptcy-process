@@ -8,7 +8,7 @@ import datetime
 if len(sys.argv) == 2:
     d = sys.argv[1]
 else:
-    d = datetime.now().strftime('%Y-%m-%d')
+    d = datetime.datetime.now().strftime('%Y-%m-%d')
 
 cfg = 'Config'
 c = getattr(importlib.import_module('config'), cfg)
