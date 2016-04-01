@@ -251,8 +251,7 @@ def process_entry(producer, entry):
 def process(config, date):
     global CONFIG
     CONFIG = config
-    hostname = "amqp://{}:{}@{}:{}".format(CONFIG['MQ_USERNAME'], CONFIG['MQ_PASSWORD'],
-                                           CONFIG['MQ_HOSTNAME'], CONFIG['MQ_PORT'])
+    hostname = config['AMQP_URI']
     connection = kombu.Connection(hostname=hostname)
     producer = connection.SimpleQueue('errors')
 
