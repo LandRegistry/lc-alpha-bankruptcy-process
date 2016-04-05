@@ -140,6 +140,7 @@ def post_bankruptcy_search(registration, name_search_result):
     uri = CONFIG['LEGACY_DB_URI'] + '/debtors'
     headers = {'Content-Type': 'application/json'}
     logging.info('Posting combined dataset to LegacyDB')
+    logging.debug(data)
     return requests.post(uri, data=json.dumps(data), headers=get_headers(headers))
 
 
