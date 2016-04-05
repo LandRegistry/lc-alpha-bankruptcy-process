@@ -206,6 +206,8 @@ def lead_name_changed(current, previous):
 
 
 def process_entry(producer, entry):
+    return_ok = True
+
     for item in entry['data']:
         date = item['date']
         number = item['number']
@@ -238,6 +240,7 @@ def process_entry(producer, entry):
             else:
                 error = "Received response {} from legacy db trying to add debtor {}".format(post_resp.status_code, number)
                 logging.error(error)
+                return_ok = False
                 raise_error(producer, {
                     "message": error,
                     "stack": "",
@@ -246,6 +249,8 @@ def process_entry(producer, entry):
                 })
         else:
             logging.info("Skip non-bankruptcy: %s", coc)
+
+    return return_ok
 
 
 def process(config, date):
@@ -265,12 +270,16 @@ def process(config, date):
         logging.info("Process {}".format(entry['application']))
 
         try:
+            ok = True
             if entry['application'] in ['new']:
-                process_entry(producer, entry)
+                ok = process_entry(producer, entry)
             elif entry['application'] in ['Amendment']:
-                process_entry(producer, entry)
+                ok = process_entry(producer, entry)
             else:
                 logging.info('Skipping application of type "%s"', entry['application'])
+
+            if not ok:
+                there_were_errors = True
 
         # pylint: disable=broad-except
         except Exception as ex:
