@@ -1,0 +1,29 @@
+{
+  "registration_no": 50001,
+  "complex": {
+    "name": "HRH King Stark",
+    "number": 18
+  },
+  "registration_date": "2015-03-05",
+  "application_ref": "8058423",
+  "application_type": "PAB",
+  "residence": [
+    {
+      "address_lines": [
+        "573 Kelly Knolls",
+        "Brandymouth",
+        "Staffordshire",
+        "XE46 7DA"
+      ]
+    },
+    {
+      "address_lines": [
+        "8591 Rosa Harbors",
+        "Schoenborough",
+        "Greater Manchester",
+        "NK84 1SS"
+      ]
+    }
+  ],
+  "occupation": "Composer"
+}
